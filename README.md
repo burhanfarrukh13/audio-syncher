@@ -14,8 +14,11 @@ to the ear, not sample-perfect studio-grade sync.
 
 ## Setup (one-time)
 1. Install [Node.js](https://nodejs.org) if you don't have it (v18+ recommended).
-2. Open a terminal in this folder.
-3. Run:
+2. Install git from (https://git-scm.com)
+3. Run the following command in powershell (administrator)
+   Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+4. Open a terminal in this folder.
+5. Run:
    ```
    npm install
    ```

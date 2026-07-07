@@ -14,8 +14,19 @@ to the ear, not sample-perfect studio-grade sync.
 
 ## Setup (one-time)
 1. Install [Node.js](https://nodejs.org) if you don't have it (v18+ recommended).
-2. Open a terminal in this folder.
-3. Run:
+2. install git grom this link (https://git-scm.com)
+3. open power shell as admin and run this command
+     Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+4. do this:
+Press Win + R, type wf.msc, hit Enter — opens Windows Defender Firewall with Advanced Security.
+Click Inbound Rules (left panel) → New Rule (right panel).
+Select Port → Next.
+TCP, Specific local ports: 3000 → Next.
+Allow the connection → Next.
+Check all three (Domain, Private, Public) → Next.
+Name it "Sync Audio" → Finish.
+5. Open a terminal in the folder in which git is cloned.
+6. Run:
    ```
    npm install
    ```

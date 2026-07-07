@@ -14,11 +14,8 @@ to the ear, not sample-perfect studio-grade sync.
 
 ## Setup (one-time)
 1. Install [Node.js](https://nodejs.org) if you don't have it (v18+ recommended).
-2. Install git from (https://git-scm.com)
-3. Run the following command in powershell (administrator)
-   Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
-4. Open a terminal in this folder.
-5. Run:
+2. Open a terminal in this folder.
+3. Run:
    ```
    npm install
    ```
@@ -55,50 +52,8 @@ to the ear, not sample-perfect studio-grade sync.
 - Pause is instant on all devices but not precisely synced (fine for a pause,
   matters much less than play).
 
-## Deploy it publicly (for two people on different networks / mobile data)
-
-The WiFi-only version above only works if both devices share one router. For
-two people on separate networks (e.g. 50km apart, one or both on mobile
-data), the server has to live on the internet, not your laptop. Do this once:
-
-### Step 1 — Get the code onto GitHub (skip if you already have a repo)
-1. Go to github.com, sign in (or create a free account).
-2. Click the **+** top-right → **New repository**. Name it `sync-audio`,
-   leave it Public, click **Create repository**.
-3. On the new repo page, click **uploading an existing file**.
-4. Drag in every file from this folder (server.js, package.json,
-   render.yaml, README.md, and the `public` folder with its 3 files) —
-   do NOT upload `node_modules` if it exists, it's not needed.
-5. Scroll down, click **Commit changes**.
-
-### Step 2 — Deploy on Render
-1. Go to render.com, sign up (free — "Sign up with GitHub" is fastest).
-2. Click **New +** → **Web Service**.
-3. Connect your GitHub account if asked, select the `sync-audio` repo.
-4. Render should auto-detect the settings from `render.yaml`
-   (build: `npm install`, start: `npm start`). If it doesn't auto-fill,
-   enter those two manually.
-5. Plan: **Free**. Click **Create Web Service**.
-6. Wait ~2 minutes for the first deploy. Render gives you a public URL like
-   `https://sync-audio-xxxx.onrender.com`.
-
-### Step 3 — Use it
-Both people open that same `https://sync-audio-xxxx.onrender.com` link —
-from any network, any city, any country. One hosts, gets the room code,
-shares it (text/WhatsApp), the other joins. Same Play button, same sync
-logic — it just runs on Render's server instead of your laptop.
-
-### One real limitation of the free Render tier
-Free services "sleep" after 15 minutes of no traffic and take ~30-50
-seconds to wake back up on the next request. If the site feels stuck
-loading the first time, that's why — just wait, it's not broken. Refresh
-after a minute if needed.
-
-### About accuracy at long distance
-At 50km apart, the two of you are never in the same physical room hearing
-both speakers overlap — so millisecond-level precision doesn't matter the
-way it did for the WiFi echo problem. A gap of a few hundred ms is
-unnoticeable when you're not standing next to both speakers at once. The
-sync math already built in still helps (it's the same code), it's just a
-lower bar to clear now.
-
+## If you want this working over the internet (not just same WiFi)
+Deploy `server.js` to a free host that supports persistent WebSocket
+connections (Render, Railway, Fly.io — NOT plain Netlify/Vercel static
+hosting, which doesn't keep a socket connection open). Ask me and I'll walk
+you through it — it's a small change, not a rewrite.

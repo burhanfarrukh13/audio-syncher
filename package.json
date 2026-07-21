@@ -1,0 +1,13 @@
+{
+  "name": "sync-audio",
+  "version": "1.1.0",
+  "description": "Play the same audio file in sync across multiple devices on the same WiFi network, with seek, chat, and local caching",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}

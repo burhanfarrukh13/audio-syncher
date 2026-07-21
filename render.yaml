@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: sync-audio
+    env: node
+    plan: free
+    buildCommand: npm install && curl -sL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o ./yt-dlp && chmod +x ./yt-dlp
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.0

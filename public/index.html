@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura | Synced Premium Music Experience</title>
+    
+    <!-- External CDNs -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        bg: 'var(--color-bg)',
+                        surface: 'var(--color-surface)',
+                        surfaceHover: 'var(--color-surface-hover)',
+                        primary: 'var(--color-primary)',
+                        primaryGlow: 'var(--color-primary-glow)',
+                        textMain: 'var(--color-text-main)',
+                        textSub: 'var(--color-text-sub)',
+                        border: 'var(--color-border)',
+                    },
+                    animation: {
+                        'spin-slow': 'spin 8s linear infinite',
+                        'pulse-glow': 'pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'fade-in': 'fadeIn 0.2s ease-out',
+                    },
+                    keyframes: {
+                        'pulse-glow': {
+                            '0%, 100%': { opacity: 1, filter: 'brightness(1)' },
+                            '50%': { opacity: .8, filter: 'brightness(1.5)' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: 0 },
+                            '100%': { transform: 'translateY(0)', opacity: 1 },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: 0 },
+                            '100%': { opacity: 1 },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-bg: #121212;
+            --color-surface: rgba(24, 24, 24, 0.7);
+            --color-surface-hover: rgba(40, 40, 40, 0.8);
+            --color-primary: #1db954;
+            --color-primary-glow: rgba(29, 185, 84, 0.5);
+            --color-text-main: #ffffff;
+            --color-text-sub: #a7a7a7;
+            --color-border: rgba(255,255,255,0.1);
+        }
+        body {
+            background-color: var(--color-bg);
+            color: var(--color-text-main);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        .glass {
+            background: var(--color-surface);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--color-border);
+        }
+        .glass-panel {
+            background: linear-gradient(145deg, var(--color-surface) 0%, rgba(0,0,0,0) 100%);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--color-border);
+            border-left: 1px solid var(--color-border);
+        }
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-image: linear-gradient(90deg, var(--color-text-main), var(--color-primary));
+        }
+        .bg-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.15;
+            z-index: -1;
+            pointer-events: none;
+        }
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+            height: 6px;
+            cursor: pointer;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            background: var(--color-surface-hover);
+            border-radius: 3px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: var(--color-text-main);
+            margin-top: -4px;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col antialiased text-sm overflow-hidden">
+    
+    <div class="bg-blob w-96 h-96 top-[-10%] left-[-10%] bg-emerald-500"></div>
+
+    <!-- App Shell Container: Fixed height limitation handled via flexible container context -->
+    <div class="flex-1 flex overflow-hidden w-full relative">
+        
+        <!-- Sidebar Navigation (Desktop Sidebar, Mobile Drawer) -->
+        <!-- Adjusted layout values: Added absolute/md:relative rules to work neatly under the parent architecture -->
+        <aside class="w-64 glass flex flex-col absolute md:relative z-50 h-full border-r border-border transition-transform duration-300 transform -translate-x-full md:translate-x-0" id="sidebar">
+            <div class="p-6 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center shadow-lg">
+                        <i class="fas fa-satellite-dish text-white text-md"></i>
+                    </div>
+                    <span class="text-2xl font-bold tracking-wider text-gradient">Aura Sync</span>
+                </div>
+                <!-- Close Button on Mobile Drawer -->
+                <button class="md:hidden text-textSub hover:text-textMain text-xl" id="closeSidebarBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto px-4 pb-4">
+                <div class="mb-6">
+                    <p class="text-xs font-semibold text-textSub uppercase tracking-widest mb-3 px-2">Navigation</p>
+                    <ul class="space-y-1">
+                        <li><a href="#" data-view="home" class="nav-link flex items-center gap-4 px-3 py-2.5 rounded-lg text-textMain bg-surfaceHover transition-colors"><i class="fas fa-home w-5"></i> Dashboard</a></li>
+                        <li><a href="#" data-view="rooms" class="nav-link flex items-center gap-4 px-3 py-2.5 rounded-lg text-textSub hover:text-textMain hover:bg-surface transition-colors"><i class="fas fa-users w-5"></i> Session Room</a></li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content Viewport -->
+        <main class="flex-1 relative flex flex-col overflow-hidden bg-bg/50 backdrop-blur-sm w-full">
+            <!-- Top App Bar -->
+            <header class="h-16 flex items-center justify-between px-4 md:px-6 glass z-20 flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <!-- Mobile Hamburger Menu Button -->
+                    <button class="md:hidden text-textSub hover:text-textMain text-xl p-1" id="menuToggleBtn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div id="roleHint" class="text-[11px] sm:text-xs bg-surface border border-border px-2.5 sm:py-1 rounded-full text-primary truncate max-w-[150px] sm:max-w-none">Establishing state...</div>
+                    <div id="clientStatus" class="text-xs text-textSub hidden lg:block"></div>
+                </div>
+                
+                <div class="flex items-center gap-2 sm:gap-4">
+                    <!-- Host Controls -->
+                    <div id="uploadRow" class="hidden flex items-center">
+                        <input type="file" id="fileInput" accept="audio/*" class="text-xs text-textSub bg-surface px-1.5 py-1 rounded border border-border max-w-[110px] sm:max-w-[180px]">
+                    </div>
+                    <div id="youtubeRow" class="hidden flex items-center gap-1 sm:gap-2">
+                        <input type="text" id="youtubeInput" placeholder="YT URL..." class="bg-surface text-textMain text-xs rounded-lg px-2 py-1.5 w-24 sm:w-40 focus:outline-none border border-border">
+                        <button id="loadYtBtn" class="bg-primary hover:bg-primary/80 text-white text-xs px-2.5 py-1.5 rounded-lg font-medium transition-colors">Add</button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Workspace Views Container: Reduced explicit padding offsets since playbar doesn't hover -->
+            <div id="views-container" class="flex-1 overflow-y-auto p-4 md:p-6 relative">
+                
+                <!-- View Dashboard -->
+                <div id="view-home" class="view-section animate-fade-in">
+                    <div class="mb-6 md:mb-8">
+                        <h1 class="text-2xl md:text-4xl font-bold mb-1">Multi-Device Sync</h1>
+                        <p class="text-textSub text-xs md:text-sm">Initialize structural rooms or stream tracks over network caches.</p>
+                    </div>
+
+                    <div id="landing" class="grid grid-cols-1 md:grid-cols-2 gap-4 md:grid-cols-2 md:gap-8 max-w-4xl">
+                        <div class="glass-panel p-6 md:p-8 rounded-2xl flex flex-col items-center text-center">
+                            <div class="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/20 flex items-center justify-center mb-3 md:mb-4 text-primary text-xl md:text-2xl">
+                                <i class="fas fa-crown"></i>
+                            </div>
+                            <h3 class="text-lg md:text-xl font-bold mb-1">Host New Room</h3>
+                            <p class="text-textSub text-xs mb-4 md:mb-6">Transmit playback timelines across home Wi-Fi architecture.</p>
+                            <button id="createBtn" class="w-full py-2.5 md:py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/80 transition-transform active:scale-95 text-xs md:text-sm">Generate Code</button>
+                        </div>
+
+                        <div class="glass-panel p-6 md:p-8 rounded-2xl flex flex-col items-center text-center">
+                            <div class="w-12 h-12 md:w-16 md:h-16 rounded-full bg-surface flex items-center justify-center mb-3 md:mb-4 text-textMain text-xl md:text-2xl border border-border">
+                                <i class="fas fa-sign-in-alt"></i>
+                            </div>
+                            <h3 class="text-lg md:text-xl font-bold mb-1">Connect to Session</h3>
+                            <p class="text-textSub text-xs mb-3 md:mb-4">Ingest late-join alignments seamlessly.</p>
+                            <div class="w-full flex gap-2">
+                                <input id="codeInput" type="text" inputmode="numeric" maxlength="4" placeholder="0000" class="flex-1 bg-bg text-center tracking-widest font-bold text-textMain rounded-xl px-3 py-2.5 focus:outline-none border border-border text-sm">
+                                <button id="joinBtn" class="px-4 md:px-6 bg-surfaceHover text-textMain rounded-xl font-bold hover:bg-surface border border-border text-xs md:text-sm">Join</button>
+                            </div>
+                            <p id="landingError" class="text-red-400 text-xs mt-2"></p>
+                        </div>
+                    </div>
+
+                    <!-- Queue Container -->
+                    <div id="queuePanel" class="mt-6 md:mt-8 glass-panel p-4 md:p-6 rounded-2xl hidden flex flex-col">
+                        <h3 class="font-bold text-base md:text-lg mb-3 flex items-center gap-2 flex-shrink-0">
+                            <i class="fas fa-list-ul text-primary"></i> Live Server Track Queue
+                        </h3>
+                        <div id="queueList" class="space-y-2 max-h-[220px] sm:max-h-[320px] md:max-h-[420px] overflow-y-auto pr-1 custom-scrollbar flex-1">
+                            <!-- Rows injected dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View Session Room -->
+                <div id="view-rooms" class="view-section hidden animate-fade-in">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                        <!-- Left Panel: Room Identification -->
+                        <div class="glass-panel p-4 md:p-6 rounded-2xl md:col-span-1 flex flex-col items-center text-center justify-center min-h-[140px]">
+                            <p class="text-xs uppercase tracking-widest text-textSub mb-1">Room Identifier</p>
+                            <div id="roomCodeText" class="text-4xl md:text-5xl font-extrabold tracking-widest text-primary mb-2 md:mb-4">----</div>
+                            
+                            <div id="readinessPanel" class="w-full mt-2 bg-surface p-2.5 rounded-xl border border-border hidden">
+                                <div class="flex justify-between text-[11px] text-textSub mb-1.5">
+                                    <span>Sync Status:</span>
+                                    <span><span id="readyCount">0</span>/<span id="readyTotal">0</span> Ready</span>
+                                </div>
+                                <div class="w-full h-1.5 bg-bg rounded-full overflow-hidden">
+                                    <div id="readinessFill" class="h-full bg-primary transition-all duration-300" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Panel: Live Communications Chat Grid -->
+                        <div class="glass-panel p-4 md:p-6 rounded-2xl md:col-span-2 flex flex-col h-[300px] md:h-[350px]">
+                            <h3 class="font-bold text-xs text-textSub uppercase tracking-wider mb-2">Room Communication Stream</h3>
+                            <div id="chatMessages" class="flex-1 overflow-y-auto space-y-2 mb-3 p-2 bg-bg/40 rounded-xl custom-scrollbar"></div>
+                            <form id="chatForm" class="flex gap-2">
+                                <input type="text" id="chatInput" placeholder="Broadcast string..." maxlength="500" class="flex-1 bg-surface text-textMain rounded-xl px-3 py-2 focus:outline-none border border-border text-xs">
+                                <button type="submit" class="bg-primary text-white px-4 rounded-xl font-medium text-xs">Send</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Client Node Management Grid -->
+                    <div id="rosterPanel" class="mt-4 md:mt-6 glass-panel p-4 md:p-6 rounded-2xl hidden">
+                        <h4 class="font-bold text-xs text-textSub uppercase tracking-wider mb-3">Attached Peripheral Elements</h4>
+                        <div id="rosterList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Global Persistent Playbar Console Footer: Removed absolute fixed rules and set flex-shrink-0 -->
+    <footer class="h-[95px] w-full glass z-50 flex flex-col justify-end pb-2 relative flex-shrink-0" id="playbar">
+        <!-- Progress Range Interface -->
+        <div class="absolute top-0 left-0 w-full h-1">
+            <input type="range" id="progressSlider" min="0" max="1000" value="0" class="absolute top-[-5px] left-0 w-full z-20 accent-primary">
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center justify-between px-4 md:px-6 h-full pt-2 gap-2 sm:gap-0">
+            <!-- Asset Section (Track Title / Artwork) -->
+            <div id="playerCard" class="flex items-center gap-3 w-full sm:w-1/3 min-w-0 opacity-40 transition-opacity duration-300 justify-start">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-surfaceHover rounded-lg border border-border flex items-center justify-center overflow-hidden flex-shrink-0" id="artWrap">
+                    <div id="artImage" class="w-full h-full bg-cover bg-center"></div>
+                </div>
+                <div class="flex flex-col truncate max-w-[70%] sm:max-w-[180px]">
+                    <span id="trackName" class="font-bold text-xs sm:text-sm text-textMain truncate">No track loaded</span>
+                    <span id="cacheStatus" class="text-[9px] sm:text-[10px] text-primary font-mono truncate"></span>
+                </div>
+            </div>
+
+            <!-- Alignment Control Panel Panel -->
+            <div class="flex flex-col items-center justify-center w-full sm:w-1/3 max-w-[400px]">
+                <div class="flex items-center gap-4 sm:gap-6 mb-0.5">
+                    <button id="prevTrackBtn" class="text-textSub hover:text-textMain text-xs" disabled><i class="fas fa-step-backward"></i></button>
+                    <button id="backBtn" class="text-textSub hover:text-textMain text-xs" disabled>⏪ 10s</button>
+                    <button id="playPauseBtn" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-textMain text-bg flex items-center justify-center text-xs font-bold hover:scale-105 transition-transform" disabled>▶</button>
+                    <button id="fwdBtn" class="text-textSub hover:text-textMain text-xs" disabled>10s ⏩</button>
+                    <button id="nextTrackBtn" class="text-textSub hover:text-textMain text-xs" disabled><i class="fas fa-step-forward"></i></button>
+                </div>
+                <div class="w-full flex justify-between text-[10px] text-textSub font-mono px-1">
+                    <span id="timeCurrent">0:00</span>
+                    <span id="timeTotal">0:00</span>
+                </div>
+            </div>
+
+            <!-- Volume Slider Peripheral Panel -->
+            <div class="hidden sm:flex items-center justify-end gap-2.5 w-1/3 min-w-[120px]">
+                <span class="text-xs text-textSub"><i class="fas fa-volume-up"></i></span>
+                <div class="w-20 lg:w-24">
+                    <input type="range" id="volumeSlider" min="0" max="100" value="100" class="accent-primary">
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- System Intermediaries & Prompt Overlays -->
+    <div id="ytHiddenPlayer" class="pointer-events-none absolute left-[-999px] top-[-999px] w-1 h-1"></div>
+    
+    <div id="autoplayPrompt" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center hidden p-4">
+        <div class="bg-surface p-6 rounded-2xl border border-border text-center max-w-sm glass w-full">
+            <h4 class="font-bold text-lg mb-2">Audio Gateway Blocked</h4>
+            <p class="text-textSub text-xs mb-4">Peripherals require user gestures to coordinate downstream audio contexts securely.</p>
+            <button id="autoplayPromptBtn" class="px-6 py-2 bg-primary text-white text-xs rounded-full font-bold w-full">Unblock Audio Context</button>
+        </div>
+    </div>
+
+    <p id="globalStatus" class="fixed bottom-2 right-2 text-[10px] text-textSub font-mono z-[100] pointer-events-none"></p>
+
+    <!-- Operational Node Scripts Injection Layer -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const SCHEDULE_DELAY = 1.0; 
+        const SEEK_STEP = 10;
+        const YT_CUE_TIMEOUT = 4000;
+
+        function getClientId() {
+            let id = sessionStorage.getItem('sync-audio-clientId');
+            if (!id) {
+                id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('c_' + Date.now().toString(36) + Math.random().toString(36).slice(2));
+                sessionStorage.setItem('sync-audio-clientId', id);
+            }
+            return id;
+        }
+        const CLIENT_ID = getClientId();
+        const SESSION_KEY = 'sync-audio-session';
+
+        function saveSession() { if (roomCode) sessionStorage.setItem(SESSION_KEY, JSON.stringify({ roomCode, isHost })); }
+        function clearSession() { sessionStorage.removeItem(SESSION_KEY); }
+        function loadSession() {
+            try { const raw = sessionStorage.getItem(SESSION_KEY); return raw ? JSON.parse(raw) : null; } 
+            catch (e) { return null; }
+        }
+
+        // Responsive Hamburger Drawer Microinteractions
+        const sidebar = document.getElementById('sidebar');
+        document.getElementById('menuToggleBtn').addEventListener('click', () => {
+            sidebar.classList.remove('-translate-x-full');
+        });
+        document.getElementById('closeSidebarBtn').addEventListener('click', () => {
+            sidebar.classList.add('-translate-x-full');
+        });
+
+        // State Storage Elements
+        let roomCode = null;
+        let isHost = false;
+        let trackType = null;     
+        let trackLabel = null;    
+        let currentTrackId = null; 
+        let queue = [];            
+        let queueCurrentIndex = -1;
+
+        let audioCtx = null;
+        let gainNode = null;
+        let analyser = null;
+        let audioBuffer = null;
+        let currentSource = null;
+
+        let ytPlayer = null;
+        let ytReady = false;
+        let ytPlayerPromise = null;   
+        let ytCuedWaiters = [];       
+        let autoplayBlocked = false;
+
+        let isPlaying = false;
+        let playStartCtxTime = 0;
+        let playStartOffset = 0;
+        let pendingSeekOffset = null;
+        let trackDuration = 0;
+
+        const el = (id) => document.getElementById(id);
+        const landing = el('landing');
+        const playerCard = el('playerCard');
+        const uploadRow = el('uploadRow');
+        const globalStatus = el('globalStatus');
+
+        function showStatus(msg) { globalStatus.textContent = msg; }
+
+        function switchView(viewName) {
+            document.querySelectorAll('.view-section').forEach(view => view.classList.add('hidden'));
+            const activeView = el(`view-${viewName}`);
+            if(activeView) activeView.classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('text-textMain', 'bg-surfaceHover');
+                link.classList.add('text-textSub');
+                if(link.dataset.view === viewName) {
+                    link.classList.add('text-textMain', 'bg-surfaceHover');
+                    link.classList.remove('text-textSub');
+                }
+            });
+            sidebar.classList.add('-translate-x-full');
+        }
+
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                if(roomCode) switchView(e.currentTarget.dataset.view);
+            });
+        });
+
+        // IndexedDB Cache
+        const DB_NAME = 'sync-audio-cache';
+        const STORE = 'tracks';
+
+        function openCacheDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onupgradeneeded = () => req.result.createObjectStore(STORE);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+        async function cacheSaveTrack(key, name, arrayBuf) {
+            try {
+                const db = await openCacheDB();
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE, 'readwrite');
+                    tx.objectStore(STORE).put({ fileName: name, buffer: arrayBuf }, key);
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error);
+                });
+            } catch (e) { console.warn('Cache write verification fault.', e); }
+        }
+        async function cacheLoadTrack(key) {
+            try {
+                const db = await openCacheDB();
+                return await new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE, 'readonly');
+                    const req = tx.objectStore(STORE).get(key);
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = () => reject(req.error);
+                });
+            } catch (e) { return null; }
+        }
+
+        // Lazy-instantiated YouTube Native Core
+        let ytApiLoading = null;
+        function loadYouTubeApi() {
+            if (window.YT && window.YT.Player) return Promise.resolve();
+            if (ytApiLoading) return ytApiLoading;
+            ytApiLoading = new Promise((resolve) => {
+                window.onYouTubeIframeAPIReady = () => resolve();
+                const tag = document.createElement('script');
+                tag.src = 'https://www.youtube.com/iframe_api';
+                document.head.appendChild(tag);
+            });
+            return ytApiLoading;
+        }
+
+        function ensureYtPlayer() {
+            if (ytPlayerPromise) return ytPlayerPromise;
+            ytPlayerPromise = loadYouTubeApi().then(() => new Promise((resolve) => {
+                ytPlayer = new YT.Player('ytHiddenPlayer', {
+                    height: '1', width: '1',
+                    playerVars: { controls: 0, disablekb: 1, playsinline: 1 },
+                    events: {
+                        onReady: () => { ytReady = true; resolve(ytPlayer); },
+                        onStateChange: onYtStateChange,
+                        onError: onYtError
+                    }
+                });
+            }));
+            return ytPlayerPromise;
+        }
+
+        function onYtError(e) { showStatus('YouTube process execution exception occurred.'); }
+
+        function onYtStateChange(e) {
+            if (e.data === YT.PlayerState.CUED) {
+                const waiters = ytCuedWaiters; ytCuedWaiters = [];
+                waiters.forEach((r) => r());
+            }
+            if (e.data === YT.PlayerState.UNSTARTED && isPlaying && !autoplayBlocked) {
+                autoplayBlocked = true;
+                el('autoplayPrompt').classList.remove('hidden');
+            }
+        }
+
+        function waitForYtCued() {
+            return new Promise((resolve) => {
+                let done = false;
+                const finish = () => { if (!done) { done = true; resolve(); } };
+                ytCuedWaiters.push(finish);
+                setTimeout(finish, YT_CUE_TIMEOUT);
+            });
+        }
+
+        el('autoplayPromptBtn').addEventListener('click', () => {
+            el('autoplayPrompt').classList.add('hidden');
+            autoplayBlocked = false;
+            ensureAudioContext();
+            if (trackType === 'youtube' && ytPlayer) ytPlayer.playVideo();
+            else if (trackType === 'file') scheduleStart(getPosition(), 0);
+        });
+
+        // Web Audio Context Core
+        function ensureAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                gainNode = audioCtx.createGain();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 128;
+                gainNode.connect(analyser);
+                analyser.connect(audioCtx.destination);
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+        }
+
+        function stopSource() {
+            if (currentSource) {
+                try { currentSource.stop(); } catch (e) {}
+                try { currentSource.disconnect(); } catch (e) {}
+                currentSource = null;
+            }
+        }
+
+        // Control Matrix Alignments
+        const YT_MIN_SCHEDULE_DELAY = 2.2; 
+        const YT_DRIFT_CHECK_INTERVAL = 2000; 
+        const YT_DRIFT_THRESHOLD = 0.25;      
+        let ytDriftTimer = null;
+
+        function stopYtDriftCorrection() { if (ytDriftTimer) { clearInterval(ytDriftTimer); ytDriftTimer = null; } }
+        function startYtDriftCorrection() {
+            stopYtDriftCorrection();
+            ytDriftTimer = setInterval(() => {
+                if (trackType !== 'youtube' || !isPlaying || !ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return;
+                const expected = playStartOffset + (performance.now() / 1000 - playStartCtxTime);
+                let actual = 0;
+                try { actual = ytPlayer.getCurrentTime(); } catch (e) { return; }
+                if (Math.abs(actual - expected) > YT_DRIFT_THRESHOLD) {
+                    try { ytPlayer.seekTo(expected, true); } catch (e) {}
+                }
+            }, YT_DRIFT_CHECK_INTERVAL);
+        }
+
+        function scheduleStart(offset, delaySec) {
+            if (trackType === 'file') {
+                ensureAudioContext();
+                if (!audioBuffer) return;
+                stopSource();
+                const clamped = Math.max(0, Math.min(offset, audioBuffer.duration - 0.05));
+                currentSource = audioCtx.createBufferSource();
+                currentSource.buffer = audioBuffer;
+                currentSource.connect(gainNode);
+                currentSource.start(audioCtx.currentTime + delaySec, clamped);
+                playStartCtxTime = audioCtx.currentTime + delaySec;
+                playStartOffset = clamped;
+                isPlaying = true;
+                setTimeout(() => { updatePlayPauseIcon(true); }, Math.max(0, delaySec * 1000));
+            } else if (trackType === 'youtube' && ytPlayer) {
+                const ytDelay = Math.max(delaySec, YT_MIN_SCHEDULE_DELAY);
+                playStartOffset = offset;
+                playStartCtxTime = performance.now() / 1000 + ytDelay;
+                try { ytPlayer.seekTo(offset, true); ytPlayer.pauseVideo(); } catch (e) {}
+                isPlaying = true;
+                setTimeout(() => {
+                    updatePlayPauseIcon(true);
+                    try { ytPlayer.playVideo(); } catch (e) {}
+                    startYtDriftCorrection();
+                }, Math.max(0, ytDelay * 1000));
+            }
+        }
+
+        function pauseAt(offset) {
+            stopYtDriftCorrection();
+            if (trackType === 'file') stopSource();
+            else if (trackType === 'youtube' && ytPlayer) { try { ytPlayer.pauseVideo(); ytPlayer.seekTo(offset, true); } catch (e) {} }
+            playStartOffset = Math.max(0, offset);
+            isPlaying = false;
+            updatePlayPauseIcon(false);
+        }
+
+        function getPosition() {
+            if (trackType === 'file') {
+                if (!audioBuffer) return 0;
+                if (!isPlaying) return playStartOffset;
+                return Math.max(0, Math.min(playStartOffset + (audioCtx.currentTime - playStartCtxTime), audioBuffer.duration));
+            }
+            if (trackType === 'youtube' && ytPlayer && ytReady) {
+                if (isPlaying && typeof ytPlayer.getCurrentTime === 'function') {
+                    try { return ytPlayer.getCurrentTime(); } catch (e) { return playStartOffset; }
+                }
+                return playStartOffset;
+            }
+            return 0;
+        }
+
+        function updatePlayPauseIcon(playingState) {
+            el('playPauseBtn').innerHTML = playingState ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
+        }
+
+        // Room Subsystem Operations
+        el('createBtn').addEventListener('click', () => {
+            ensureAudioContext();
+            socket.emit('create-room', { clientId: CLIENT_ID }, ({ ok, roomCode: code }) => {
+                if (!ok) return;
+                enterRoom(code, true);
+                saveSession();
+            });
+        });
+
+        el('joinBtn').addEventListener('click', () => {
+            const code = el('codeInput').value.trim();
+            if (code.length !== 4) { el('landingError').textContent = 'Requires a valid 4-digit token link.'; return; }
+            ensureAudioContext();
+            socket.emit('join-room', { code, clientId: CLIENT_ID }, async (res) => {
+                if (!res.ok) { el('landingError').textContent = res.error; return; }
+                enterRoom(res.roomCode, false);
+                saveSession();
+                applyQueueUpdate(res.queue, res.currentIndex);
+                if (res.track) await activateTrack(res.track, res.isPlaying, res.offset);
+            });
+        });
+
+        function enterRoom(code, hostFlag) {
+            roomCode = code;
+            isHost = hostFlag;
+            el('roomCodeText').textContent = code;
+            el('queuePanel').classList.remove('hidden');
+
+            if (isHost) {
+                uploadRow.classList.remove('hidden');
+                el('youtubeRow').classList.remove('hidden');
+                el('rosterPanel').classList.remove('hidden');
+                el('readinessPanel').classList.remove('hidden');
+                el('roleHint').textContent = 'Hosting Engine Active';
+            } else {
+                el('roleHint').textContent = 'Client Sink Configured';
+                setControlsEnabled(false);
+            }
+            showStatus('Connected.');
+            switchView('rooms');
+        }
+
+        function setControlsEnabled(enabled) {
+            ['playPauseBtn', 'backBtn', 'fwdBtn', 'progressSlider', 'prevTrackBtn', 'nextTrackBtn'].forEach(id => {
+                el(id).disabled = !enabled;
+            });
+        }
+
+        // Session Sync Persistence
+        socket.on('connect', () => {
+            const session = loadSession();
+            if (!session || !session.roomCode) return;
+            showStatus('Rebinding pipe lines...');
+            socket.emit('rejoin', { roomCode: session.roomCode, clientId: CLIENT_ID, wantHost: session.isHost }, async (res) => {
+                if (!res || !res.ok) { clearSession(); showStatus('Pipeline lease expired.'); return; }
+                enterRoom(res.roomCode, res.isHost);
+                applyQueueUpdate(res.queue, res.currentIndex);
+                if (res.listeners) renderRoster(res.listeners);
+                if (res.track && res.track.id !== currentTrackId) await activateTrack(res.track, res.isPlaying, res.offset);
+                else if (res.track) applyServerState(res.isPlaying, res.offset);
+                showStatus('Reconnected.');
+            });
+        });
+
+        async function activateTrack(track, playing, offset) {
+            if (track.type === 'file') {
+                const cached = await cacheLoadTrack(track.id);
+                if (cached && cached.fileName === track.fileName) {
+                    el('cacheStatus').textContent = 'Asset cache confirmed.';
+                    await decodeFileTrack(cached.buffer, track.fileName, track.id);
+                    applyServerState(playing, offset);
+                    emitTrackReady(track.id);
+                    return;
+                }
+                socket.emit('request-track', roomCode, async (res) => {
+                    if (!res.ok || res.type !== 'file') return;
+                    await decodeFileTrack(res.buffer, res.fileName, res.id || track.id);
+                    cacheSaveTrack(res.id || track.id, res.fileName, res.buffer.slice(0));
+                    applyServerState(res.isPlaying, res.offset);
+                    emitTrackReady(res.id || track.id);
+                });
+            } else if (track.type === 'youtube') {
+                await activateYoutubeTrack(track.videoId, track.title, track.id, playing, offset);
+                emitTrackReady(track.id);
+            }
+        }
+
+        function emitTrackReady(trackId) {
+            if (!roomCode || trackId !== currentTrackId) return;
+            socket.emit('track-ready', { roomCode, trackId });
+        }
+
+        function applyServerState(playing, offset) {
+            if (playing) scheduleStart(offset, 0.2);
+            else pauseAt(offset);
+            refreshProgressUI();
+        }
+
+        async function decodeFileTrack(arrayBuf, name, id) {
+            ensureAudioContext();
+            trackType = 'file';
+            trackLabel = name;
+            currentTrackId = id;
+            try { audioBuffer = await audioCtx.decodeAudioData(arrayBuf.slice(0)); } 
+            catch (err) { showStatus('Codec parsing exception thrown.'); return; }
+            if (id !== currentTrackId) return;
+            trackDuration = audioBuffer.duration;
+            finishTrackActivation(name);
+        }
+
+        async function activateYoutubeTrack(videoId, title, id, playing, offset) {
+            await ensureYtPlayer();
+            stopYtDriftCorrection();
+            trackType = 'youtube';
+            trackLabel = title;
+            currentTrackId = id;
+            audioBuffer = null;
+            ytPlayer.cueVideoById(videoId);
+            trackDuration = 0;
+            finishTrackActivation(title);
+            await waitForYtCued();
+            if (id !== currentTrackId) return;
+            if (typeof playing !== 'undefined') applyServerState(playing, offset || 0);
+        }
+
+        function finishTrackActivation(label) {
+            el('trackName').textContent = label;
+            playerCard.style.opacity = "1";
+            if (isHost) setControlsEnabled(true);
+        }
+
+        // Network Ingestion Hooks
+        el('fileInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            showStatus('Appending frame byte array...');
+            const arrayBuf = await file.arrayBuffer();
+            socket.emit('queue-add', { roomCode, item: { type: 'file', fileName: file.name, buffer: arrayBuf } }, (res) => {
+                showStatus(res && res.ok ? 'Asset aligned.' : 'Buffer ingestion fault.');
+            });
+            e.target.value = '';
+        });
+
+        el('loadYtBtn').addEventListener('click', async () => {
+            const raw = el('youtubeInput').value.trim();
+            if (!raw) return;
+            showStatus('Fetching server metadata parameters...');
+            el('loadYtBtn').disabled = true;
+            socket.emit('queue-add-youtube', { roomCode, url: raw }, (res) => {
+                if (!res || !res.ok) { el('loadYtBtn').disabled = false; showStatus('Ingestion failure exception caught.'); }
+            });
+            el('youtubeInput').value = '';
+        });
+
+        socket.on('download-status', ({ status }) => {
+            if (status === 'done') { el('loadYtBtn').disabled = false; showStatus('Pipeline execution finished.'); }
+        });
+
+        // Trigger Listeners
+        el('playPauseBtn').addEventListener('click', () => {
+            if (!isHost || !trackType) return;
+            const offset = getPosition();
+            if (isPlaying) socket.emit('pause', { roomCode, offset });
+            else socket.emit('play', { roomCode, offset });
+        });
+
+        el('backBtn').addEventListener('click', () => seekBy(-SEEK_STEP));
+        el('fwdBtn').addEventListener('click', () => seekBy(SEEK_STEP));
+
+        function seekBy(delta) {
+            if (!isHost || !trackType) return;
+            const dur = trackType === 'file' ? audioBuffer.duration : (trackDuration || 1e6);
+            const target = Math.max(0, Math.min(getPosition() + delta, dur));
+            socket.emit('seek', { roomCode, offset: target, resume: isPlaying });
+        }
+
+        el('prevTrackBtn').addEventListener('click', () => { if (isHost) socket.emit('queue-prev', { roomCode }); });
+        el('nextTrackBtn').addEventListener('click', () => { if (isHost) socket.emit('queue-next', { roomCode }); });
+
+        const progressSlider = el('progressSlider');
+        progressSlider.addEventListener('input', () => {
+            const dur = trackType === 'file' ? (audioBuffer ? audioBuffer.duration : 0) : trackDuration;
+            if (!dur) return;
+            pendingSeekOffset = (progressSlider.value / 1000) * dur;
+            el('timeCurrent').textContent = formatTime(pendingSeekOffset);
+        });
+        progressSlider.addEventListener('change', () => {
+            if (!isHost || pendingSeekOffset === null) return;
+            socket.emit('seek', { roomCode, offset: pendingSeekOffset, resume: isPlaying });
+            pendingSeekOffset = null;
+        });
+
+        el('volumeSlider').addEventListener('input', (e) => {
+            const v = e.target.value / 100;
+            if (trackType === 'file') { ensureAudioContext(); if (gainNode) gainNode.gain.value = v; } 
+            else if (trackType === 'youtube' && ytPlayer) ytPlayer.setVolume(e.target.value);
+        });
+
+        socket.on('play', ({ offset }) => { if (trackType) scheduleStart(offset, SCHEDULE_DELAY); });
+        socket.on('pause', ({ offset }) => pauseAt(offset));
+        socket.on('seek', ({ offset, resume }) => {
+            if (!trackType) return;
+            if (resume) scheduleStart(offset, SCHEDULE_DELAY); else pauseAt(offset);
+        });
+
+        socket.on('track-changed', async (track) => {
+            if (!track) {
+                trackType = null; currentTrackId = null;
+                playerCard.style.opacity = "0.4"; el('trackName').textContent = 'No track loaded'; return;
+            }
+            await activateTrack(track, false, 0);
+        });
+
+        socket.on('queue-changed', ({ queue: q, currentIndex }) => applyQueueUpdate(q, currentIndex));
+
+        socket.on('readiness', ({ readyCount, totalCount }) => {
+            if (!isHost) return;
+            el('readyCount').textContent = readyCount; el('readyTotal').textContent = totalCount;
+            const pct = totalCount > 0 ? Math.round((readyCount / totalCount) * 100) : 0;
+            el('readinessFill').style.width = pct + '%';
+        });
+
+        socket.on('roster', ({ count, listeners }) => {
+            el('clientStatus').textContent = `${count} devices logged.`;
+            renderRoster(listeners || []);
+        });
+
+        socket.on('host-left', () => { clearSession(); showStatus('Host context lease lost.'); stopSource(); });
+        socket.on('chat-message', ({ sender, text }) => addChatMessage(sender, text));
+
+        // Layout Injection Logic
+        function applyQueueUpdate(q, currentIndex) { queue = q || []; queueCurrentIndex = currentIndex; renderQueue(); }
+
+        function renderQueue() {
+            const box = el('queueList'); box.innerHTML = '';
+            if (queue.length === 0) { box.innerHTML = '<p class="text-textSub text-xs italic">Queue is empty.</p>'; return; }
+            queue.forEach((t, i) => {
+                const row = document.createElement('div');
+                row.className = `flex justify-between items-center p-3 rounded-xl border text-xs transition-colors ${i === queueCurrentIndex ? 'bg-primary/10 border-primary text-primary' : 'bg-surface border-border text-textMain'}`;
+                
+                const label = document.createElement('span');
+                label.className = 'truncate max-w-[70%]';
+                label.textContent = `${i + 1}. ` + (t.type === 'file' ? t.fileName : t.title);
+                row.appendChild(label);
+
+                if (isHost) {
+                    const act = document.createElement('div'); act.className = 'flex gap-3 flex-shrink-0';
+                    if (i !== queueCurrentIndex) {
+                        const play = document.createElement('button'); play.innerHTML = '<i class="fas fa-play"></i>';
+                        play.onclick = () => socket.emit('queue-select', { roomCode, id: t.id });
+                        act.appendChild(play);
+                    }
+                    const rem = document.createElement('button'); rem.innerHTML = '<i class="fas fa-trash text-red-400"></i>';
+                    rem.onclick = () => socket.emit('queue-remove', { roomCode, id: t.id });
+                    act.appendChild(rem);
+                    row.appendChild(act);
+                }
+                box.appendChild(row);
+            });
+        }
+
+        function renderRoster(listeners) {
+            const box = el('rosterList'); box.innerHTML = '';
+            if (listeners.length === 0) { box.innerHTML = '<p class="text-textSub text-xs">No active nodes monitored.</p>'; return; }
+            listeners.forEach((l) => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center bg-surface border border-border p-3 rounded-xl text-xs';
+                div.innerHTML = `<span class="truncate max-w-[70%]"><i class="fas fa-mobile-alt text-textSub mr-2"></i> ${l.label}</span>`;
+                if (isHost) {
+                    const btn = document.createElement('button'); btn.className = 'text-red-400 font-bold flex-shrink-0'; btn.textContent = 'Kick';
+                    btn.onclick = () => socket.emit('kick', { roomCode, targetId: l.id });
+                    div.appendChild(btn);
+                }
+                box.appendChild(div);
+            });
+        }
+
+        el('chatForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = el('chatInput').value.trim();
+            if (!text || !roomCode) return; el('chatInput').value = '';
+            socket.emit('chat-message', { roomCode, text });
+        });
+
+        function addChatMessage(sender, text) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `p-2.5 rounded-xl text-xs max-w-[85%] ${sender === 'Host' ? 'bg-primary text-white self-end ml-auto' : 'bg-surface text-textMain'}`;
+            wrapper.innerHTML = `<span class="block font-bold text-[9px] text-textSub opacity-80 mb-0.5">${sender}</span><span>${text}</span>`;
+            el('chatMessages').appendChild(wrapper);
+            el('chatMessages').scrollTop = el('chatMessages').scrollHeight;
+        }
+
+        function refreshProgressUI() {
+            if (!trackType) return;
+            const dur = trackType === 'file' ? (audioBuffer ? audioBuffer.duration : 0) : (trackDuration || (ytPlayer && ytReady && typeof ytPlayer.getDuration === 'function' ? ytPlayer.getDuration() : 0));
+            if (trackType === 'youtube' && dur) trackDuration = dur; if (!dur) return;
+            const pos = getPosition();
+            if (pendingSeekOffset === null) progressSlider.value = Math.round((pos / dur) * 1000);
+            el('timeCurrent').textContent = formatTime(pos); el('timeTotal').textContent = formatTime(dur);
+        }
+
+        function formatTime(sec) {
+            if (isNaN(sec) || sec < 0) return '0:00';
+            const m = Math.floor(sec / 60); const s = Math.floor(sec % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        setInterval(refreshProgressUI, 250);
+    </script>
+</body>
+</html>
